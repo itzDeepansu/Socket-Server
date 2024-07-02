@@ -1,83 +1,61 @@
-const http = require("http");
-const express = require("express");
+import express from "express";
+import { Server } from "socket.io";
+import { createServer } from "http";
+import cors from "cors";
+import axios from "axios";
+
+const port = 3000;
+
 const app = express();
+const server = createServer(app);
 
-app.use(express.static("public"));
-// require("dotenv").config();
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 
-const serverPort = process.env.PORT || 3000;
-const server = http.createServer(app);
-const WebSocket = require("ws");
+app.use(cors());
 
-let keepAliveId;
+app.get("/", (req, res) => {
+  res.send("hello world");
+});
 
-const wss =
-  process.env.NODE_ENV === "production"
-    ? new WebSocket.Server({ server })
-    : new WebSocket.Server({ port: 5001 });
+let sidMap = new Map();
+io.on("connection", (socket) => {
+  console.log("User Connected", socket.id);
 
-server.listen(serverPort);
-console.log(`Server started on port ${serverPort} in stage ${process.env.NODE_ENV}`);
-
-wss.on("connection", function (ws, req) {
-  console.log("Connection Opened");
-  console.log("Client size: ", wss.clients.size);
-
-  if (wss.clients.size === 1) {
-    console.log("first connection. starting keepalive");
-    keepServerAlive();
-  }
-
-  ws.on("message", (data) => {
-    let stringifiedData = data.toString();
-    if (stringifiedData === 'pong') {
-      console.log('keepAlive');
-      return;
-    }
-    broadcast(ws, stringifiedData, false);
+  socket.on("sendSocketID", (data) => {
+    sidMap.set(socket.id, data.phoneNumber);
   });
 
-  ws.on("close", (data) => {
-    console.log("closing connection");
+  socket.on("sendMessage", (data) => {
+    console.log(data.sender, "---- message ----", data.receiver);
+    socket.to(data.receiver).emit("recieveMessage", data);
+    console.log(data, "recieved");
+  });
 
-    if (wss.clients.size === 0) {
-      console.log("last client disconnected, stopping keepAlive interval");
-      clearInterval(keepAliveId);
+  socket.on("deleteMessage", (data) => {
+    socket.to(data.receiver).emit("deleteReceiveMessage", data);
+  });
+
+  socket.on("disconnect", async () => {
+    const phoneNumber = sidMap.get(socket.id);
+
+    try {
+      await axios.post(`${process.env.API_URL}user/setoffline`, {
+        phoneNumber: phoneNumber,
+      });
+      console.log("User Disconnected", socket.id);
+    } catch (error) {
+      console.error("Error setting user offline:");
     }
+    sidMap.delete(socket.id);
   });
 });
 
-// Implement broadcast function because of ws doesn't have it
-const broadcast = (ws, message, includeSelf) => {
-  if (includeSelf) {
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
-  } else {
-    wss.clients.forEach((client) => {
-      if (client !== ws && client.readyState === WebSocket.OPEN) {
-        client.send(message);
-      }
-    });
-  }
-};
-
-/**
- * Sends a ping message to all connected clients every 50 seconds
- */
- const keepServerAlive = () => {
-  keepAliveId = setInterval(() => {
-    wss.clients.forEach((client) => {
-      if (client.readyState === WebSocket.OPEN) {
-        client.send('ping');
-      }
-    });
-  }, 50000);
-};
-
-
-app.get('/', (req, res) => {
-    res.send('Hello World!');
+server.listen(port, () => {
+  console.log(`Server running on ${port}`);
 });
