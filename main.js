@@ -2,7 +2,7 @@ import express from "express";
 import { Server } from "socket.io";
 import { createServer } from "http";
 import cors from "cors";
-import axios from "axios";
+// import axios from "axios";
 
 const port = 3000;
 
@@ -44,14 +44,14 @@ io.on("connection", (socket) => {
   socket.on("disconnect", async () => {
     const phoneNumber = sidMap.get(socket.id);
 
-    try {
-      await axios.post(`${process.env.API_URL}user/setoffline`, {
-        phoneNumber: phoneNumber,
-      });
+    // try {
+    //   await axios.post(`${process.env.API_URL}user/setoffline`, {
+    //     phoneNumber: phoneNumber,
+    //   });
       console.log("User Disconnected", socket.id);
-    } catch (error) {
-      console.error("Error setting user offline:");
-    }
+    // } catch (error) {
+    //   console.error("Error setting user offline:");
+    // }
     sidMap.delete(socket.id);
   });
 });

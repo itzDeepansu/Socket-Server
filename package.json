@@ -6,6 +6,7 @@
   "author": "Torin Blankensmith",
   "license": "MIT",
   "private": false,
+  "type": "module",
   "scripts": {
     "start": "node ./main.js",
     "dev": "NODE_ENV=development PORT=5000 node ./main.js"
