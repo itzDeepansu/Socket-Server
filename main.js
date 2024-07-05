@@ -1,8 +1,10 @@
+configDotenv();
 import express from "express";
 import { Server } from "socket.io";
 import { createServer } from "http";
 import cors from "cors";
 import axios from "axios";
+import { configDotenv } from "dotenv";
 
 const port = 3000;
 
@@ -34,7 +36,6 @@ io.on("connection", (socket) => {
   socket.on("sendMessage", (data) => {
     console.log(data.sender, "---- message ----", data.receiver);
     socket.to(data.receiver).emit("recieveMessage", data);
-    console.log(data, "recieved");
   });
 
   socket.on("deleteMessage", (data) => {
@@ -43,15 +44,15 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", async () => {
     const phoneNumber = sidMap.get(socket.id);
-    console.log("User Disconnected", socket.id);
     try {
-      await axios.post(`${process.env.API_URL}user/setoffline`, {
-          phoneNumber: phoneNumber,
-        });
-      } catch (error) {
+      await axios.post(`${process.env.API_URL_DEPLOYMENT}user/setoffline`, {
+        phoneNumber: phoneNumber,
+      });
+    } catch (error) {
       console.error("Error setting user offline:");
     }
     sidMap.delete(socket.id);
+    console.log("User Disconnected", socket.id);
   });
 });
 
