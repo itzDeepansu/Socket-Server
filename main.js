@@ -43,15 +43,14 @@ io.on("connection", (socket) => {
 
   socket.on("disconnect", async () => {
     const phoneNumber = sidMap.get(socket.id);
-
-    // try {
-    //   await axios.post(`${process.env.API_URL}user/setoffline`, {
-    //     phoneNumber: phoneNumber,
-    //   });
-      console.log("User Disconnected", socket.id);
-    // } catch (error) {
-    //   console.error("Error setting user offline:");
-    // }
+    console.log("User Disconnected", socket.id);
+    try {
+      await axios.post(`${process.env.API_URL}user/setoffline`, {
+          phoneNumber: phoneNumber,
+        });
+      } catch (error) {
+      console.error("Error setting user offline:");
+    }
     sidMap.delete(socket.id);
   });
 });
